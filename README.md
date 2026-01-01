@@ -1,174 +1,258 @@
 🛒 ShopVerse – Microservices-Based E-Commerce Backend
 
-A production-style microservices backend system built using Spring Boot, Spring Cloud, Kafka, and API Gateway, following industry best practices for configuration management, service discovery, and event-driven architecture.
+ShopVerse is a microservices-based e-commerce backend system built using Spring Boot, Spring Cloud, Docker, and Kafka.
+The project demonstrates real-world backend architecture patterns including service discovery, centralized configuration, API gateway, synchronous & asynchronous communication, and containerization.
 
-🚀 Project Overview
+🏗 Architecture Overview
 
-ShopVerse is a scalable backend architecture designed to simulate a real-world e-commerce platform. The system is built using loosely coupled microservices, centralized configuration, service discovery, and asynchronous communication via Kafka.
+ShopVerse follows a distributed microservices architecture with:
 
-This project demonstrates backend engineering depth, not just CRUD operations.
+Spring Cloud Config Server – centralized configuration (global + service-specific)
 
-🧩 Architecture Components
-Core Services
-Service	Description
-Config Server	Centralized configuration management using Git-backed configs
-Discovery Server (Eureka)	Service registration and discovery
-API Gateway	Single entry point for all client requests
-Product Service	Manages product data and publishes product events
-(Future-ready)	Order, Inventory, Notification services
-🔧 Tech Stack
+Eureka Discovery Server – service registration & discovery
 
-Java 17
+Spring Cloud Gateway – single entry point for all clients
 
-Spring Boot 3.x
+Independent domain services (Product, Order, Inventory)
 
-Spring Cloud 2023.x
+Event-driven communication using Kafka
 
-Spring Cloud Config Server
+Dockerized services running in a shared network
 
-Netflix Eureka
+Client
+  |
+  v
+API Gateway
+  |
+  +--> Product Service
+  |
+  +--> Order Service ----> Kafka ----> Inventory Service
+  |
+Config Server <---- all services
+  |
+Eureka Server <---- all services
 
-Spring Cloud Gateway
+🧱 Microservices Overview
 
-Apache Kafka
+1️⃣ Config Server
 
-Spring Data JPA + Hibernate
+Centralized configuration management
 
-H2 Database (File-based)
+Loads configs from Git/local repo
 
-Docker-ready (optional)
+Provides:
 
-📁 Repository Structure
-shopverse/
-├── config-server/
-├── discovery-server/
-├── api-gateway/
-├── product-service/
-├── config-repo/   # Git-backed configuration files
-└── README.md
-⚙️ Configuration Management
+Global configuration
 
-Centralized configuration stored in Git Config Repository
+Service-specific configuration
 
-Services fetch configs using Spring Cloud Config
+Eliminates hardcoded configs inside services
 
-Environment-specific configs supported
+Port: 8888
 
-Example config file:
+2️⃣ Discovery Server (Eureka)
 
-product-service.yml
+Service registry for all microservices
 
-Key configurations managed globally:
+Enables service-to-service communication using service names
 
-Datasource
+No hardcoded host/port dependencies
 
-Kafka
+Port: 8761
 
-Logging levels
+3️⃣ API Gateway
 
-Eureka client
+Single entry point for all client requests
 
-Feature flags
+Routes requests dynamically using Eureka
 
-🔍 Service Discovery
+Enables:
 
-Eureka Server runs on port 8761
+Centralized routing
 
-All services auto-register
+Future support for security, rate limiting, logging
 
-API Gateway uses discovery-based routing
+Port: 8080
 
-Eureka Dashboard:
+4️⃣ Product Service
 
-http://localhost:8761
-🌐 API Gateway
+Manages product catalog
 
-Central entry point for all APIs
+CRUD operations on products
 
-Dynamic routing via service IDs
+Registers with Eureka
 
-Load-balanced calls using Eureka
+Fetches configuration from Config Server
 
-Example route:
+Port: 8080 (internal)
 
-http://localhost:8080/api/products/**
-📦 Product Service
-Features
+5️⃣ Order Service
 
-Product CRUD APIs
+Handles order creation
 
-JPA + Hibernate
+Communicates with:
 
-File-based H2 DB persistence
+Product Service (synchronous)
 
-Kafka producer for product events
+Inventory Service (asynchronous via Kafka)
 
-Database
+Publishes OrderPlacedEvent to Kafka
 
-H2 Console enabled
+Port: 8081 (internal)
 
-Persistent file-based DB
+6️⃣ Inventory Service
 
-http://localhost:8080/h2-console
-📡 Kafka Integration
+Manages product stock
 
-Kafka used for event-driven communication
+Listens to Kafka events from Order Service
 
-Product Service publishes JSON events
+Updates inventory asynchronously
 
-Ready for consumer services (Order, Inventory, etc.)
+Ensures loose coupling with Order Service
 
-▶️ How to Run the Project
-Start Order
+Port: 8082 (internal)
+
+🔄 Communication Patterns Used
+✅ Synchronous Communication
+
+REST APIs using Spring Web
+
+Service name resolution via Eureka
+
+Example:
+
+Order Service → Product Service
+
+✅ Asynchronous Communication (Event-Driven)
+
+Kafka used as message broker
+
+Order Service publishes events
+
+Inventory Service consumes events
+
+Why Kafka?
+
+Loose coupling
+
+Better scalability
+
+Failure isolation
+
+Real-world enterprise pattern
+
+🐳 Docker & Containerization
+
+All services are Dockerized using:
+
+eclipse-temurin:17-jdk-alpine base image
+
+Lightweight & production-ready JVM image
+
+Docker Network
+
+All containers run inside a custom bridge network:
+
+shopverse-net
+
+
+This allows containers to communicate using service names instead of IPs.
+
+▶️ Application Startup Order
+
+⚠️ Important – Services must be started in the correct order:
 
 Config Server
 
-Discovery Server
-
-Kafka + Zookeeper
+Eureka Server
 
 API Gateway
 
+Kafka & Zookeeper
+
 Product Service
-
-🧪 Testing
-
-REST APIs testable via Postman
-
-H2 console available for DB inspection
-
-Kafka topics observable via CLI or UI
-
-📌 Key Learnings Demonstrated
-
-Microservices communication
-
-Centralized config with fail-fast
-
-Service discovery
-
-Event-driven architecture
-
-Production-grade logging
-
-Debugging real-world config issues
-
-🛣️ Roadmap
-
-Order Service
 
 Inventory Service
 
-Kafka Consumers
+Order Service
 
-Circuit Breakers
+🧪 Running Services Using Docker
+Build Image
+docker build -t shopverse/product-service:1.0 .
 
-Distributed Tracing
+Run Container
+docker run -d \
+  --name product-service \
+  --network shopverse-net \
+  -p 8080:8080 \
+  shopverse/product-service:1.0
 
-Security (OAuth2 / JWT)
 
-Docker & Kubernetes
+Internal container ports can be the same because each container has its own network namespace.
 
-👨‍💻 Author
+⚙️ Global Configuration (Config Server)
 
-Built with dedication and persistence by Sushant Kharat.
+A global configuration file is used for:
+
+Logging levels
+
+Common JPA properties
+
+Eureka configuration
+
+Shared timeout values
+
+This avoids duplication and keeps configs clean and centralized.
+
+📦 Technologies Used
+
+Java 17
+
+Spring Boot
+
+Spring Cloud (Config, Eureka, Gateway)
+
+Apache Kafka
+
+Docker & Docker Desktop
+
+Maven
+
+H2 / PostgreSQL (as applicable)
+
+🚀 What This Project Demonstrates
+
+✔ Real-world microservices design
+✔ Service discovery & centralized config
+✔ API Gateway pattern
+✔ Event-driven architecture
+✔ Docker-based deployment
+✔ Clean separation of concerns
+
+🔮 Future Enhancements (Not Implemented Yet)
+
+Circuit Breaker (Resilience4j)
+
+Retry & Timeout mechanisms
+
+Centralized security (JWT + OAuth2)
+
+Distributed tracing (Zipkin)
+
+Monitoring (Prometheus + Grafana)
+
+These were intentionally left out to keep the learning focused and progressive.
+
+🎯 Key Learnings
+
+Difference between image vs container
+
+Why ports conflict on host but not inside Docker network
+
+Service name–based communication
+
+Kafka-based async processing
+
+Debugging container logs effectively
+
+Production-grade backend thinking
